@@ -9,7 +9,7 @@
 //
 // "t" parameterizes the optimization step, not a clock (idea.md §3.2).
 
-import { add, sub, scale, dot, cross, triNormal, clamp } from "./vec.js";
+import { add, sub, scale, dot, cross, triNormal, clamp } from './vec.js';
 
 const EPS = 1e-14;
 
@@ -58,15 +58,22 @@ export function rootsInUnit(coeffs) {
 
   const out = [];
   for (let i = 0; i + 1 < bps.length; i++) {
-    let lo = bps[i], hi = bps[i + 1];
-    let flo = polyEval(c, lo), fhi = polyEval(c, hi);
+    let lo = bps[i],
+      hi = bps[i + 1];
+    let flo = polyEval(c, lo),
+      fhi = polyEval(c, hi);
     if (flo === 0 || fhi === 0 || flo * fhi < 0) {
-      let a = lo, b = hi, fa = flo;
+      let a = lo,
+        b = hi,
+        fa = flo;
       for (let it = 0; it < 60; it++) {
         const m = 0.5 * (a + b);
         const fm = polyEval(c, m);
         if (fa * fm <= 0) b = m;
-        else { a = m; fa = fm; }
+        else {
+          a = m;
+          fa = fm;
+        }
       }
       const r = 0.5 * (a + b);
       if (out.length === 0 || Math.abs(out[out.length - 1] - r) > 1e-7) out.push(r);
@@ -92,9 +99,14 @@ export function pointPlaneTOI(p0, dp, n, q, offset = 0) {
 }
 
 export function barycentric(p, a, b, c) {
-  const v0 = sub(b, a), v1 = sub(c, a), v2 = sub(p, a);
-  const d00 = dot(v0, v0), d01 = dot(v0, v1), d11 = dot(v1, v1);
-  const d20 = dot(v2, v0), d21 = dot(v2, v1);
+  const v0 = sub(b, a),
+    v1 = sub(c, a),
+    v2 = sub(p, a);
+  const d00 = dot(v0, v0),
+    d01 = dot(v0, v1),
+    d11 = dot(v1, v1);
+  const d20 = dot(v2, v0),
+    d21 = dot(v2, v1);
   const denom = d00 * d11 - d01 * d01;
   if (Math.abs(denom) < 1e-20) return null; // degenerate triangle
   const v = (d11 * d20 - d01 * d21) / denom;
@@ -120,7 +132,16 @@ export function pointTriangleStaticTOI(p0, dp, a, b, c, offset = 0, epsBary = 1e
 //   the piecewise structure and cheap since sweeps are trust-radius bounded.
 // ---------------------------------------------------------------------------
 export function movingPointTriangleTOI(
-  p0, dp, a0, da, b0, db, c0, dc, epsBary = 1e-6, samples = 16
+  p0,
+  dp,
+  a0,
+  da,
+  b0,
+  db,
+  c0,
+  dc,
+  epsBary = 1e-6,
+  samples = 16
 ) {
   const eval_ = (t) => {
     const p = add(p0, scale(dp, t));
@@ -134,12 +155,17 @@ export function movingPointTriangleTOI(
     const t = i / samples;
     const cur = eval_(t);
     if (prev.val === 0 || prev.val * cur.val < 0) {
-      let lo = (i - 1) / samples, hi = t, flo = prev.val;
+      let lo = (i - 1) / samples,
+        hi = t,
+        flo = prev.val;
       for (let it = 0; it < 50; it++) {
         const m = 0.5 * (lo + hi);
         const fm = eval_(m).val;
         if (flo * fm <= 0) hi = m;
-        else { lo = m; flo = fm; }
+        else {
+          lo = m;
+          flo = fm;
+        }
       }
       const tstar = 0.5 * (lo + hi);
       const s = eval_(tstar);
@@ -157,21 +183,36 @@ export function movingPointTriangleTOI(
 //   determinant (e.e)(f.f)-(e.f)^2 -> 0.
 // ---------------------------------------------------------------------------
 export function segSegDist2(p1, q1, p2, q2) {
-  const d1 = sub(q1, p1), d2 = sub(q2, p2), r = sub(p1, p2);
-  const a = dot(d1, d1), e = dot(d2, d2), f = dot(d2, r);
+  const d1 = sub(q1, p1),
+    d2 = sub(q2, p2),
+    r = sub(p1, p2);
+  const a = dot(d1, d1),
+    e = dot(d2, d2),
+    f = dot(d2, r);
   let s, t;
-  if (a <= EPS && e <= EPS) { s = 0; t = 0; }
-  else if (a <= EPS) { s = 0; t = clamp(f / e, 0, 1); }
-  else {
+  if (a <= EPS && e <= EPS) {
+    s = 0;
+    t = 0;
+  } else if (a <= EPS) {
+    s = 0;
+    t = clamp(f / e, 0, 1);
+  } else {
     const c = dot(d1, r);
-    if (e <= EPS) { t = 0; s = clamp(-c / a, 0, 1); }
-    else {
+    if (e <= EPS) {
+      t = 0;
+      s = clamp(-c / a, 0, 1);
+    } else {
       const b = dot(d1, d2);
       const denom = a * e - b * b;
       s = denom > EPS ? clamp((b * f - c * e) / denom, 0, 1) : 0;
       t = (b * s + f) / e;
-      if (t < 0) { t = 0; s = clamp(-c / a, 0, 1); }
-      else if (t > 1) { t = 1; s = clamp((b - c) / a, 0, 1); }
+      if (t < 0) {
+        t = 0;
+        s = clamp(-c / a, 0, 1);
+      } else if (t > 1) {
+        t = 1;
+        s = clamp((b - c) / a, 0, 1);
+      }
     }
   }
   const c1 = add(p1, scale(d1, s));
@@ -185,32 +226,39 @@ export function segSegDist2(p1, q1, p2, q2) {
 //   segment-segment distance falls to eps_shell (entering / decreasing).
 //   Returns the TOI, 0 if already within the shell, or null.
 // ---------------------------------------------------------------------------
-export function edgeEdgeTOI(
-  A0, A1, dA0, dA1, B0, B1, dB0, dB1, epsShell, samples = 16
-) {
+export function edgeEdgeTOI(A0, A1, dA0, dA1, B0, B1, dB0, dB1, epsShell, samples = 16) {
   const eps2 = epsShell * epsShell;
   const g = (t) =>
     segSegDist2(
-      add(A0, scale(dA0, t)), add(A1, scale(dA1, t)),
-      add(B0, scale(dB0, t)), add(B1, scale(dB1, t))
+      add(A0, scale(dA0, t)),
+      add(A1, scale(dA1, t)),
+      add(B0, scale(dB0, t)),
+      add(B1, scale(dB1, t))
     ).dist2 - eps2;
 
-  let prevT = 0, prevG = g(0);
+  let prevT = 0,
+    prevG = g(0);
   if (prevG <= 0) return 0; // already grazing / inside shell
   for (let i = 1; i <= samples; i++) {
     const t = i / samples;
     const gt = g(t);
     if (gt <= 0) {
-      let lo = prevT, hi = t, glo = prevG;
+      let lo = prevT,
+        hi = t,
+        glo = prevG;
       for (let it = 0; it < 50; it++) {
         const m = 0.5 * (lo + hi);
         const gm = g(m);
         if (glo * gm <= 0) hi = m;
-        else { lo = m; glo = gm; }
+        else {
+          lo = m;
+          glo = gm;
+        }
       }
       return 0.5 * (lo + hi);
     }
-    prevT = t; prevG = gt;
+    prevT = t;
+    prevG = gt;
   }
   return null;
 }
@@ -231,14 +279,20 @@ export function sweptAABB(points0, deltas, pad = 0) {
     push(points0[i]);
     push(add(points0[i], deltas[i]));
   }
-  for (let k = 0; k < 3; k++) { lo[k] -= pad; hi[k] += pad; }
+  for (let k = 0; k < 3; k++) {
+    lo[k] -= pad;
+    hi[k] += pad;
+  }
   return { lo, hi };
 }
 
 export function aabbOverlap(a, b) {
   return (
-    a.lo[0] <= b.hi[0] && a.hi[0] >= b.lo[0] &&
-    a.lo[1] <= b.hi[1] && a.hi[1] >= b.lo[1] &&
-    a.lo[2] <= b.hi[2] && a.hi[2] >= b.lo[2]
+    a.lo[0] <= b.hi[0] &&
+    a.hi[0] >= b.lo[0] &&
+    a.lo[1] <= b.hi[1] &&
+    a.hi[1] >= b.lo[1] &&
+    a.lo[2] <= b.hi[2] &&
+    a.hi[2] >= b.lo[2]
   );
 }

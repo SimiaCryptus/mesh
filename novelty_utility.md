@@ -12,11 +12,11 @@ artifact.
 
 ## 1. Summary Judgement
 
-- **Novelty: moderate, mostly in *combination*.** Each individual component
+- **Novelty: moderate, mostly in _combination_.** Each individual component
   (CCD, trust-region descent, entropy fitness, mesh energies) is
   well-established. The novel move is fusing an **exact CCD hard-constraint
   wall** with a **fitness landscape whose optima are deliberately degenerate**
-  (edge-length entropy), then using the *optimizer identity* as the selection
+  (edge-length entropy), then using the _optimizer identity_ as the selection
   mechanism among tied enclosures. This "optimizer fingerprinting under hard
   geometric constraints" framing is the distinctive contribution.
 - **Utility: high as a controlled testbed, modest as a production tool.** The
@@ -28,24 +28,24 @@ artifact.
 
 ## 2. Prior Art Landscape
 
-| Ingredient                     | Established in                                   | This lab's relation                              |
-|--------------------------------|--------------------------------------------------|--------------------------------------------------|
-| Continuous collision detection | Cloth/rigid-body sim (Bridson, Provot, Brochu)   | Reused; standard cubic-coplanarity narrow phase  |
-| Shrink-wrap / offset surfaces  | Geometry processing, mesh fitting                | Reused as one *regime*, not the whole objective  |
-| Trust-region descent           | Numerical optimization (Nocedal & Wright)        | Reused; per-vertex adaptation is a light twist   |
-| Cotangent Laplacian / fairing  | Desbrun, Meyer, Pinkall–Polthier                 | Reused as a regularizer                           |
-| Discrete curvature (deficit)   | Discrete differential geometry                   | Used for monitoring, not new                     |
-| Entropy-of-geometry fitness    | Sibling **Geometric Entropy Lab**                | Ported from pairwise-distance to edge-length KDE |
-| Optimizer fingerprinting       | Sibling labs (entropy, no-three-in-line)         | Extended into a topological/constrained setting  |
+| Ingredient                     | Established in                                 | This lab's relation                              |
+| ------------------------------ | ---------------------------------------------- | ------------------------------------------------ |
+| Continuous collision detection | Cloth/rigid-body sim (Bridson, Provot, Brochu) | Reused; standard cubic-coplanarity narrow phase  |
+| Shrink-wrap / offset surfaces  | Geometry processing, mesh fitting              | Reused as one _regime_, not the whole objective  |
+| Trust-region descent           | Numerical optimization (Nocedal & Wright)      | Reused; per-vertex adaptation is a light twist   |
+| Cotangent Laplacian / fairing  | Desbrun, Meyer, Pinkall–Polthier               | Reused as a regularizer                          |
+| Discrete curvature (deficit)   | Discrete differential geometry                 | Used for monitoring, not new                     |
+| Entropy-of-geometry fitness    | Sibling **Geometric Entropy Lab**              | Ported from pairwise-distance to edge-length KDE |
+| Optimizer fingerprinting       | Sibling labs (entropy, no-three-in-line)       | Extended into a topological/constrained setting  |
 
 The honest reading: **none of the machinery is new**. The novelty is at the
 system level.
 
 ## 3. What Is Genuinely Novel
 
-1. **Hard-wall CCD as a constraint on an *optimizer*, not a *simulator*.**
+1. **Hard-wall CCD as a constraint on an _optimizer_, not a _simulator_.**
    CCD is normally a component of a time-stepping physics integrator. Here it
-   filters the *line-search step* of a quasi-Newton optimizer, with the
+   filters the _line-search step_ of a quasi-Newton optimizer, with the
    explicit reframing that `t` parameterizes the step, not a clock. Coupling
    the TOI truncation to **optimizer state resets** (stale L-BFGS/QQN
    curvature across a projection discontinuity) is the specific, defensible
@@ -54,15 +54,15 @@ system level.
 
 2. **Degenerate-optimum selection under topology.** The edge-length entropy
    term saturates at `ln(#edges)`; a large family of meshes tie. Adding a
-   *fixed connectivity manifold* plus *exact non-penetration* means the tie is
+   _fixed connectivity manifold_ plus _exact non-penetration_ means the tie is
    broken by the interaction of optimizer dynamics with the feasible-set
-   geometry (its corners = simultaneous multi-contact). Studying *which*
+   geometry (its corners = simultaneous multi-contact). Studying _which_
    enclosure each optimizer selects is a question that, to our knowledge, is
    not posed elsewhere in this exact form.
 
 3. **Curvature-as-decision-variable coupling.** Because `F` is static, vertex
    positions alone carry the discrete curvature, so the entropy term doubles
-   as a *curvature-distribution* controller and the angular term regularizes
+   as a _curvature-distribution_ controller and the angular term regularizes
    the discrete second fundamental form directly. This dual reading of a
    single energy term is a modestly novel framing.
 
@@ -80,6 +80,7 @@ system level.
 ## 5. Utility Assessment
 
 ### 5.1 As a research instrument (high utility)
+
 - **Clean separation of soft vs. hard constraints.** Because C1–C3 are exact
   rather than penalty terms, energy weights can be tuned without balancing a
   barrier stiffness. This makes it a good bench for isolating optimizer
@@ -92,6 +93,7 @@ system level.
   response fail; the lab surfaces those failure modes deliberately.
 
 ### 5.2 As a practical tool (modest utility)
+
 - Dedicated shrink-wrap and remeshing tools (e.g. instant-meshes-style
   pipelines, offset-surface generators) will produce cleaner results faster
   for real geometry.
@@ -103,6 +105,7 @@ system level.
   question in `idea.md §8`.
 
 ### 5.3 Educational utility (high)
+
 - The lab is an excellent vehicle for teaching: (a) the difference between
   penalty and projection constraint handling, (b) why stateful optimizers
   need resets across discontinuities, (c) how CCD prevents tunneling, and
@@ -113,7 +116,7 @@ system level.
 
 - **Tolerance coupling could dominate results.** If the converged geometry is
   largely determined by the `ε`/`δ` ordering (`ε_resid < δ_safe < ε_shell ≪
-  r_min`) rather than by optimizer identity, the "fingerprint" is an artifact
+r_min`) rather than by optimizer identity, the "fingerprint" is an artifact
   of tolerance choices, not a property of the optimizer. The cross-coupling
   analysis in outline §9 is therefore load-bearing for the central claim.
 - **Energy injection via resolution.** The claim that symmetric,
@@ -130,7 +133,7 @@ Position the lab as a **controlled study of constrained-descent dynamics and
 optimizer fingerprinting on a topological decision variable**, not as a
 geometry-processing product. To make the novelty defensible, prioritize:
 
-1. Pin the tolerance table and *demonstrate* that fingerprints persist across
+1. Pin the tolerance table and _demonstrate_ that fingerprints persist across
    a range of `ε`/`δ` settings (rules out tolerance-artifact objection).
 2. Provide the energy-non-injection argument for the resolution step
    (empirical bound at minimum).

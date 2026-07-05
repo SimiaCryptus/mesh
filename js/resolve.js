@@ -1,7 +1,7 @@
 // js/resolve.js
 // Collision resolution rules (math_outline.md §4).
 
-import { add, sub, scale, dot, normalize } from "./vec.js";
+import { add, sub, scale, dot, normalize } from './vec.js';
 
 // §4.1 / §4.3  Point-plane projection with safety offset. n must be unit.
 //   p <- p - (n.(p - q) - delta_safe) n

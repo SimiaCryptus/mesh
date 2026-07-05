@@ -30,7 +30,7 @@ This lab shares its DNA with the other experiments in this collection:
   them.
 - Like the **No-Three-in-Line Lab**, hard combinatorial/geometric constraints
   are handled inside a continuous relaxation. Where that lab uses divergent
-  angle penalties, this lab uses *exact* constraint enforcement via projection
+  angle penalties, this lab uses _exact_ constraint enforcement via projection
   and step truncation — a hard wall rather than a soft barrier.
 
 The new ingredient here is **topology**: the decision variables are not a
@@ -77,7 +77,7 @@ balancing against a barrier stiffness.
 ### 1.3 Fitness Menu
 
 | Functional             | Definition                                     | Typical use                      |
-|------------------------|------------------------------------------------|----------------------------------|
+| ---------------------- | ---------------------------------------------- | -------------------------------- |
 | **Surface area**       | `Σ_faces ½‖(b−a)×(c−a)‖`                       | Shrink-wrap / minimal enclosure  |
 | **Volume**             | `⅙ Σ_faces a·(b×c)` (divergence theorem)       | Inflate / match a target volume  |
 | **Vertex fidelity**    | `Σᵢ wᵢ‖pᵢ − tᵢ‖²`                              | Pin landmarks, preserve shape    |
@@ -117,7 +117,7 @@ was collision-truncated, `rᵢ ← rᵢ/2`.
 
 All detection is **continuous**: the test object is the swept path from the
 iteration base position `p⁰` to the proposed target `p⁰ + Δp`, not just the
-endpoints. This prevents *tunneling* — fast elements passing entirely through
+endpoints. This prevents _tunneling_ — fast elements passing entirely through
 a thin constraint feature between discrete steps.
 
 ### 3.1 Broad Phase
@@ -136,9 +136,9 @@ crossing of the half-space (`d(t) = 0` with `d` decreasing into the solid)
 followed by a barycentric containment test flags a collision and yields the
 parametric **time of impact** `t* = d(0) / (d(0) − d(1))`.
 
-> *"Time of impact" is a numerical metaphor: there is no simulation clock,
+> _"Time of impact" is a numerical metaphor: there is no simulation clock,
 > only the projection geometry obeyed during the line-search phase of the
-> optimization. `t` parameterizes the step, not time.*
+> optimization. `t` parameterizes the step, not time._
 
 ### 3.3 Edge-to-Edge (Narrow Phase)
 
@@ -164,7 +164,7 @@ p ← p − (n·(p − q) − δ_safe) · n
 
 This zeroes the velocity component perpendicular to the constraint while
 preserving tangential motion — the vertex may slide along the keep-out
-surface, allowing the optimizer to continue making progress *around* the
+surface, allowing the optimizer to continue making progress _around_ the
 obstacle rather than stalling against it.
 
 ### 4.2 Edge–Edge: Delta Scaling
@@ -176,7 +176,7 @@ involved vertices are uniformly scaled back to a safe fraction of the TOI:
 Δp ← (η · t*) · Δp,     η ≈ 0.9
 ```
 
-This preserves the *direction* of the optimization step while halting progress
+This preserves the _direction_ of the optimization step while halting progress
 exactly at (just short of) the collision boundary. On subsequent iterations
 the energy gradient typically rotates the step direction tangentially, and the
 edges slide past one another rather than locking.
@@ -185,7 +185,7 @@ edges slide past one another rather than locking.
 
 Self-contact is more delicate because the "constraint plane" is itself moving:
 
-- **Point–face self-collision** — the projection rule *pushes the point*
+- **Point–face self-collision** — the projection rule _pushes the point_
   (rather than deforming the face) to avoid ambiguity about which side owns
   the correction. The face's own vertices are handled symmetrically when they
   appear as moving points against other faces, so no element is privileged
@@ -264,7 +264,7 @@ angles across each edge). This is important for manifold behavior:
 ## 7. Fitness Metrics (Reported Live)
 
 | Metric              | Meaning                                                       |
-|---------------------|---------------------------------------------------------------|
+| ------------------- | ------------------------------------------------------------- |
 | **Surface area**    | Total area `A(P)` of the enclosure                            |
 | **Volume**          | Enclosed signed volume `V(P)` and gap to target `V*`          |
 | **Vertex fidelity** | RMS distance of pinned vertices to their targets              |
@@ -319,7 +319,7 @@ mesh/
 ## Dependencies (planned, CDN)
 
 | Library                | Purpose                                 |
-|------------------------|-----------------------------------------|
+| ---------------------- | --------------------------------------- |
 | `@tensorflow/tfjs` 4.x | Autodiff gradients of the soft energies |
 | (none for CCD)         | Collision pipeline is hand-rolled JS    |
 

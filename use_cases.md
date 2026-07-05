@@ -1,8 +1,8 @@
 # Use Cases — Constrained Mesh Enclosure Lab
 
 This document collects concrete applications for the constrained mesh
-enclosure lab. Each entry names the *energy configuration* that drives it,
-the *mechanism* by which the geometry responds, and the *practical payoff*.
+enclosure lab. Each entry names the _energy configuration_ that drives it,
+the _mechanism_ by which the geometry responds, and the _practical payoff_.
 These are motivating scenarios, not benchmarks — they explain **why** a
 particular combination of the fitness terms in `math_outline.md §1` is
 interesting.
@@ -15,7 +15,7 @@ interesting.
   (outline §1.3), moderate `λ_area` for shrink-wrap, light `λ_smooth`.
 - **Mechanism.** Pinning vertices to targets locally suppresses motion, so
   the surrounding surface must absorb curvature elsewhere — curvature is
-  *diverted* away from the pinned patch, leaving it comparatively flat.
+  _diverted_ away from the pinned patch, leaving it comparatively flat.
 - **Payoff.** Shrink-wrap a model while reserving flat, low-distortion
   panels for decals, stickers, or printed labels. The keep-out constraint
   guarantees the wrap still clears the inner mesh `K` by `δ_safe`.
@@ -28,10 +28,10 @@ interesting.
   (and hence faces) become near-congruent. The entropy term saturates at
   `ln(#edges)` when all lengths contribute equal kernel mass.
 - **Payoff.**
-- *Aesthetics.* Visually regular, evenly-sized facets.
-- *Manufacturing.* Similar edges/faces simplify tooling, panelization,
+- _Aesthetics._ Visually regular, evenly-sized facets.
+- _Manufacturing._ Similar edges/faces simplify tooling, panelization,
   and repeated-part fabrication.
-- *Engineering.* Symmetric, homogeneous structures can yield predictable
+- _Engineering._ Symmetric, homogeneous structures can yield predictable
   mechanical behavior (e.g. controlled resonance modes, uniform stress
   distribution).
 
@@ -41,11 +41,11 @@ interesting.
   (outline §2), optionally targeting `φ_e = 0`.
 - **Mechanism.** L1 sparsity drives most dihedral angles to exactly zero,
   merging adjacent triangles into coplanar groups — effectively producing
-  *nontriangular (planar) faces* out of a triangulated mesh while keeping a
+  _nontriangular (planar) faces_ out of a triangulated mesh while keeping a
   few sharp creases.
 - **Payoff.** Low-facet-count "developable-ish" surfaces suited to flat
   panel manufacturing (sheet metal, folded card, architectural cladding).
-- **Open question.** Dihedral *inversion* (fold-over) must be constrained —
+- **Open question.** Dihedral _inversion_ (fold-over) must be constrained —
   define a valid dihedral region so the L1 pull does not flip faces through
   one another (couples to the self-intersection guarantees C2/C3).
 
@@ -85,7 +85,7 @@ interesting.
   Adam vs. L-BFGS vs. QQN.
 - **Mechanism.** When many meshes tie on the energy, the optimizer's
   dynamics — interacting with the corners of the feasible set (simultaneous
-  multi-contact) — select *which* enclosure is realized.
+  multi-contact) — select _which_ enclosure is realized.
 - **Payoff.** A reproducible study of constrained-descent behavior: identical
   mesh + identical energy + different optimizer → visibly distinct
   converged geometries at equal fitness (see `novelty_utility.md §3`).

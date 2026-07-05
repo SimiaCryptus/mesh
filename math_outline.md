@@ -2,7 +2,7 @@
 
 This document collects the concrete formulas, the nontrivial derivations, and
 the numerical specifications required to implement the lab described in
-`idea.md`. It is a *specification of problems*, not a set of solutions: each
+`idea.md`. It is a _specification of problems_, not a set of solutions: each
 section states the quantities involved, the exact algebraic form where it is
 known, and flags the analysis still required (root isolation, degeneracy
 handling, gradient availability, tolerance choices).
@@ -316,7 +316,7 @@ checking that the closest-point parameters `s,r ∈ [0,1]` at `t*`.
   changes with `t`); specify whether we (a) root-find on the cubic
   coplanarity `ψ` and validate, or (b) sample/bracket `dist²(t)` directly.
 - Adjacency exclusion: edges sharing a vertex are exempt (C2/C3 say
-  *non-adjacent*); define the adjacency mask precisely (shared vertex,
+  _non-adjacent_); define the adjacency mask precisely (shared vertex,
   shared face, or 1-ring).
 - Parallel-edge degeneracy (system matrix singular) → fall back to
   endpoint-to-segment distances.
@@ -348,7 +348,7 @@ p ← p − ( n·(p − q) − δ_safe ) · n
 - Removes only the normal component of penetration; tangential displacement
   survives (sliding contact).
 - **Analysis required.** After projection the vertex sits on the `δ_safe`
-  offset surface, but the *offset surface* near an edge/corner of `K` is not
+  offset surface, but the _offset surface_ near an edge/corner of `K` is not
   the plane of a single face — specify corner handling (project to nearest
   feature: face/edge/vertex of the offset surface) to avoid oscillation
   between adjacent faces' planes.
@@ -370,7 +370,7 @@ the TOI:
 ### 4.3 Self-Collision Symmetry
 
 - **Point–face self-collision:** move the point (projection of §4.1 with the
-  *moving* face's plane evaluated at TOI), never the face, to avoid ownership
+  _moving_ face's plane evaluated at TOI), never the face, to avoid ownership
   ambiguity. The face's vertices are corrected symmetrically when they later
   act as moving points.
 - **Edge–edge self-collision:** §4.2 applied to both edges' four endpoints at
@@ -475,7 +475,7 @@ When connectivity edits (flip / split / collapse) are permitted:
   touched vertices (§5, §6).
 
 - **Analysis required.** Formal conditions under which an edge flip is
-  *guaranteed* not to create a self-intersection given the local geometry;
+  _guaranteed_ not to create a self-intersection given the local geometry;
   quality predicates (min-angle improvement, valence balancing) that trigger
   each edit type; rate-limiting policy.
 
@@ -486,7 +486,7 @@ When connectivity edits (flip / split / collapse) are permitted:
 A single table of every `ε`/`δ` referenced above, to be fixed in one place:
 
 | Symbol      | Meaning                                         | Coupled to           |
-|-------------|-------------------------------------------------|----------------------|
+| ----------- | ----------------------------------------------- | -------------------- |
 | `δ_safe`    | outward offset kept from `K`                    | §4.1, min clearance  |
 | `ε_shell`   | edge–edge safety-margin distance                | §3.3, §4.2           |
 | `ε_bary`    | barycentric containment slack                   | §3.2                 |

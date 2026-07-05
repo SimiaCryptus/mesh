@@ -1,4 +1,4 @@
-* need way to zoom in
-* optimized mesh intrudes into inner mesh
-* need a README
-* 
+- need way to zoom in
+- optimized mesh intrudes into inner mesh
+- need a README
+-

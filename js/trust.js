@@ -1,7 +1,7 @@
 // js/trust.js
 // Per-vertex trust-radius dynamics (math_outline.md §5).
 
-import { scale, norm } from "./vec.js";
+import { scale, norm } from './vec.js';
 
 export class TrustRadii {
   constructor(
