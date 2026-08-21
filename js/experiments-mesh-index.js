@@ -6,16 +6,16 @@ import {
   faceGeom,
   signedClearance,
   enforceClearance,
-} from './js/geometry.js';
-import { MeshEnergy } from './js/mesh-energy.js';
-import { OptimizerAdam } from './js/optimizer-adam.js';
-import { OptimizerLbfgs } from './js/optimizer-lbfgs.js';
-import { OptimizerQQN } from './js/optimizer-qqn.js';
-import { TrustRadii } from './js/trust.js';
-import { pointTriangleStaticTOI, sweptAABB, aabbOverlap } from './js/ccd.js';
-import { projectPointToPlane } from './js/resolve.js';
-import { retriangulate } from './js/retriangulate.js';
-import { add, sub, scale, norm, triNormal } from './js/vec.js';
+} from './geometry.js';
+import { MeshEnergy } from './mesh-energy.js';
+import { OptimizerAdam } from './optimizer-adam.js';
+import { OptimizerLbfgs } from './optimizer-lbfgs.js';
+import { OptimizerQQN } from './optimizer-qqn.js';
+import { TrustRadii } from './trust.js';
+import { pointTriangleStaticTOI, sweptAABB, aabbOverlap } from './ccd.js';
+import { projectPointToPlane } from './resolve.js';
+import { retriangulate } from './retriangulate.js';
+import { add, sub, scale, norm, triNormal } from './vec.js';
 
 // ---- weight sliders -----------------------------------------------------
 const W_SPEC = [
