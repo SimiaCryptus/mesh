@@ -1,12 +1,22 @@
 {
-  "id": "mesh",
-  "title": "Constrained Mesh Enclosure Lab",
-  "category": "lab",
-  "href": "index.html",
-  "readme": "README.md",
-  "order": 14,
-  "section": "featured",
-  "icon": "ME",
-  "launchLabel": "Open the Constrained Mesh Enclosure Lab",
-  "pitch": "A deformable surface mesh flows downhill on geometric fitness functionals (area, volume, edge-length entropy, angular regularity, Laplacian smoothness) while an exact continuous collision-detection pipeline guarantees it never intrudes into an inner keep-out volume — a differentiable shrink-wrap where every gradient step is clipped at the moment of contact."
+    "id": "mesh",
+    "title": "Constrained Mesh Enclosure Lab",
+    "description": "A deformable surface mesh flows downhill on geometric fitness functionals (area, volume, edge-length entropy, angular regularity, Laplacian smoothness) while an exact continuous collision-detection pipeline guarantees it never intrudes into an inner keep-out volume — a differentiable shrink-wrap where every gradient step is clipped at the moment of contact.",
+    "tags": [
+        "geometry",
+        "mesh",
+        "optimization",
+        "collision-detection",
+        "entropy",
+        "constrained-descent",
+        "optimizer-fingerprinting",
+        "webgl"
+    ],
+    "category": "labs",
+    "href": "index.html",
+    "readme": "README.md",
+    "order": 14,
+    "section": "featured",
+    "icon": "ME",
+    "launchLabel": "Open the Constrained Mesh Enclosure Lab"
 }
