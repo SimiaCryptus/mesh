@@ -6,7 +6,10 @@ import {
   faceGeom,
   signedClearance,
   enforceClearance,
+  fitMeshInSphere,
 } from './geometry.js';
+import { FaceIndex } from './face-index.js';
+import { parseSTL, exportBinarySTL, downloadBlob } from './stl.js';
 import { MeshEnergy } from './mesh-energy.js';
 import { OptimizerAdam } from './optimizer-adam.js';
 import { OptimizerLbfgs } from './optimizer-lbfgs.js';
@@ -15,7 +18,7 @@ import { TrustRadii } from './trust.js';
 import { pointTriangleStaticTOI, sweptAABB, aabbOverlap } from './ccd.js';
 import { projectPointToPlane } from './resolve.js';
 import { retriangulate } from './retriangulate.js';
-import { add, sub, scale, norm, triNormal } from './vec.js';
+import { add, sub, scale, norm } from './vec.js';
 
 // ---- weight sliders -----------------------------------------------------
 const W_SPEC = [
@@ -51,8 +54,16 @@ const dsafeInp = document.getElementById('dsafe');
 const dsafeV = document.getElementById('dsafeV');
 dsafeInp.addEventListener('input', () => (dsafeV.textContent = (+dsafeInp.value).toFixed(3)));
 
+// ---- STL I/O DOM --------------------------------------------------------
+const fileInp = document.getElementById('stlFile');
+const fitRInp = document.getElementById('fitR');
+const autoCenterInp = document.getElementById('autoCenter');
+const kinfo = document.getElementById('kinfo');
+
 // ---- lab state ----------------------------------------------------------
-let M, K, Kfaces, energy, P, opt, trust, topo;
+let M, K, Kfaces, Kindex, Kedges, Medges, energy, P, opt, trust, topo;
+let importedK = null; // raw (unscaled) STL mesh: { P, F, name }
+let kFit = { scale: 1, center: [0, 0, 0] }; // p_fit = (p_src - center) * scale
 let stepCount = 0,
   rejects = 0,
   contacts = 0;
@@ -66,19 +77,44 @@ function makeOptimizer() {
   return new OptimizerAdam(lr);
 }
 
+function updateKInfo(note) {
+  if (!kinfo) return;
+  const src = importedK ? importedK.name : 'icosphere (built-in)';
+  const fit = importedK ? ` · ×${kFit.scale.toPrecision(3)} auto-fit` : '';
+  kinfo.textContent =
+    (note ? note + ' — ' : '') +
+    `K: ${src} · ${K ? K.F.length : 0} tris / ${K ? K.P.length : 0} verts${fit}`;
+}
+
 function initLab() {
   if (energy) energy.dispose();
   if (P) P.dispose();
 
-  M = icosphere(2, 2.2); // moving outer mesh
-  K = icosphere(1, 0.95); // static keep-out volume
+  // inner keep-out region radius (imported meshes are fitted to it)
+  const fitR = Math.min(2.0, Math.max(0.05, +fitRInp.value || 0.95));
+  fitRInp.value = fitR;
+  const outerR = Math.max(2.2, fitR * 2.3);
+
+  M = icosphere(2, outerR); // moving outer mesh
+  if (importedK) {
+    // auto-center + isotropic scale so the STL fits the initial inner region
+    const fit = fitMeshInSphere(importedK, fitR, { center: autoCenterInp.checked });
+    K = { P: fit.P, F: fit.F };
+    kFit = { scale: fit.scale, center: fit.center };
+  } else {
+    K = icosphere(1, fitR); // static keep-out volume
+    kFit = { scale: 1, center: [0, 0, 0] };
+  }
   Kfaces = faceGeom(K.P, K.F);
+  Kindex = new FaceIndex(Kfaces);
+  Kedges = buildEdges(K.F);
 
   const V = M.P.length;
   const edges = buildEdges(M.F);
   const corners = buildCorners(M.F);
   const Lmatrix = buildLaplacian(M.F, V);
   topo = { faces: M.F, edges, corners, Lmatrix, V };
+  Medges = edges;
 
   // entropy KDE constants from initial edge-length sample
   const lens = edges.map(([i, j]) => norm(sub(M.P[i], M.P[j])));
@@ -119,6 +155,7 @@ function initLab() {
   stepCount = 0;
   rejects = 0;
   contacts = 0;
+  updateKInfo();
   updateMetrics();
 }
 
@@ -140,7 +177,7 @@ function step() {
   const Pf = new Array(V);
   const truncated = new Set();
 
-  // build swept AABB list for K broad phase (K is small; brute per vertex)
+  // swept AABB per vertex, narrowed by the K grid broad phase (§3.1)
   for (let i = 0; i < V; i++) {
     const p0 = P0[i];
     const dp = trust.clampStep(i, sub(P1[i], p0)); // trust clamp (§5)
@@ -149,20 +186,11 @@ function step() {
     // C1 keep-out vs static K
     let bestT = null,
       bestFace = null;
-    for (const f of Kfaces) {
-      const fb = {
-        lo: [
-          Math.min(f.a[0], f.b[0], f.c[0]),
-          Math.min(f.a[1], f.b[1], f.c[1]),
-          Math.min(f.a[2], f.b[2], f.c[2]),
-        ],
-        hi: [
-          Math.max(f.a[0], f.b[0], f.c[0]),
-          Math.max(f.a[1], f.b[1], f.c[1]),
-          Math.max(f.a[2], f.b[2], f.c[2]),
-        ],
-      };
-      if (!aabbOverlap(sw, fb)) continue;
+    const cand = Kindex.queryAABB(sw.lo, sw.hi);
+    for (let m = 0; m < cand.length; m++) {
+      const fi = cand[m];
+      if (!aabbOverlap(sw, Kindex.aabbs[fi])) continue;
+      const f = Kfaces[fi];
       const t = pointTriangleStaticTOI(p0, dp, f.a, f.b, f.c, deltaSafe);
       if (t !== null && (bestT === null || t < bestT)) {
         bestT = t;
@@ -179,7 +207,7 @@ function step() {
       Pf[i] = add(p0, dp);
     }
     // Hard keep-out guarantee: never allow intrusion into K (notes.md).
-    const safe = enforceClearance(Pf[i], Kfaces, deltaSafe);
+    const safe = enforceClearance(Pf[i], Kindex, deltaSafe);
     if (safe !== Pf[i]) {
       truncated.add(i);
       Pf[i] = safe;
@@ -232,7 +260,7 @@ function updateMetrics() {
   const rep = energy.report(P);
   const Parr = P.arraySync();
   let minClear = Infinity;
-  for (const p of Parr) minClear = Math.min(minClear, signedClearance(p, Kfaces));
+  for (const p of Parr) minClear = Math.min(minClear, signedClearance(p, Kindex));
   const rows = [
     ['Surface area', rep.area.toFixed(4)],
     ['Volume', rep.volume.toFixed(4)],
@@ -302,33 +330,28 @@ function project(p) {
   return [canvas.width / 2 + x * f, canvas.height / 2 - y * f];
 }
 
-function drawMesh(P3, F, color, width) {
+// Precomputed edge lists keep imported (dense) STLs drawable; very large
+// wire counts are subsampled rather than dropped.
+function drawEdges(P3, edges, color, width, maxEdges = 24000) {
+  if (!edges || !edges.length) return;
   ctx.strokeStyle = color;
   ctx.lineWidth = width * devicePixelRatio;
+  const stride = Math.max(1, Math.ceil(edges.length / maxEdges));
   ctx.beginPath();
-  const drawn = new Set();
-  for (const [a, b, c] of F) {
-    for (const [i, j] of [
-      [a, b],
-      [b, c],
-      [c, a],
-    ]) {
-      const k = i < j ? i + '_' + j : j + '_' + i;
-      if (drawn.has(k)) continue;
-      drawn.add(k);
-      const p = project(P3[i]),
-        q = project(P3[j]);
-      ctx.moveTo(p[0], p[1]);
-      ctx.lineTo(q[0], q[1]);
-    }
+  for (let e = 0; e < edges.length; e += stride) {
+    const [i, j] = edges[e];
+    const p = project(P3[i]),
+      q = project(P3[j]);
+    ctx.moveTo(p[0], p[1]);
+    ctx.lineTo(q[0], q[1]);
   }
   ctx.stroke();
 }
 
 function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawMesh(K.P, K.F, '#e0653b', 1); // constraint K
-  drawMesh(P.arraySync(), M.F, '#6cd0ff', 1); // moving mesh M
+  drawEdges(K.P, Kedges, '#e0653b', 1); // constraint K
+  drawEdges(P.arraySync(), Medges, '#6cd0ff', 1); // moving mesh M
   requestAnimationFrame(render);
 }
 
@@ -341,24 +364,82 @@ function loop() {
 }
 
 // ---- controls -----------------------------------------------------------
+function stopRun() {
+  running = false;
+  document.getElementById('run').textContent = '▶ Run';
+}
+
 document.getElementById('run').addEventListener('click', (e) => {
   running = !running;
   e.target.textContent = running ? '⏸ Pause' : '▶ Run';
 });
 document.getElementById('stepBtn').addEventListener('click', () => step());
 document.getElementById('reset').addEventListener('click', () => {
-  running = false;
-  document.getElementById('run').textContent = '▶ Run';
+  stopRun();
   initLab();
 });
 document.getElementById('opt').addEventListener('change', () => (opt = makeOptimizer()));
 document
   .getElementById('lr')
   .addEventListener('change', () => opt.setLearningRate(+document.getElementById('lr').value));
+
+// ---- STL import / export ------------------------------------------------
+document.getElementById('importK').addEventListener('click', () => fileInp.click());
+
+fileInp.addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = ''; // allow re-importing the same file
+  if (!file) return;
+  try {
+    updateKInfo(`loading ${file.name}…`);
+    const buf = await file.arrayBuffer();
+    const mesh = parseSTL(buf); // welded + outward-oriented
+    importedK = { P: mesh.P, F: mesh.F, name: file.name };
+    stopRun();
+    initLab(); // auto-centers + scales to the fit radius
+  } catch (err) {
+    importedK = null;
+    if (kinfo) kinfo.textContent = `Import failed: ${err.message}`;
+    console.error(err);
+  }
+});
+
+document.getElementById('useDefaultK').addEventListener('click', () => {
+  if (!importedK) return;
+  importedK = null;
+  stopRun();
+  initLab();
+});
+
+fitRInp.addEventListener('change', () => {
+  stopRun();
+  initLab();
+});
+autoCenterInp.addEventListener('change', () => {
+  if (!importedK) return;
+  stopRun();
+  initLab();
+});
+
+document.getElementById('exportM').addEventListener('click', () => {
+  if (!P) return;
+  let P3 = P.arraySync();
+  const src = document.getElementById('srcUnits');
+  if (src && src.checked && kFit.scale !== 1) {
+    // invert the import fit:  p_src = p_fit / scale + center
+    const s = 1 / kFit.scale,
+      c = kFit.center;
+    P3 = P3.map((p) => [p[0] * s + c[0], p[1] * s + c[1], p[2] * s + c[2]]);
+  }
+  const base = importedK ? importedK.name.replace(/\.stl$/i, '') : 'icosphere';
+  const blob = exportBinarySTL(P3, M.F, `enclosure of ${base}`);
+  downloadBlob(blob, `${base}-enclosure.stl`);
+});
+
 document.getElementById('retri').addEventListener('click', () => {
   const P3 = P.arraySync();
   const deltaSafe = +dsafeInp.value;
-  const keepOut = (i) => signedClearance(P3[i], Kfaces) < deltaSafe + 0.05; // §8 locality
+  const keepOut = (i) => signedClearance(P3[i], Kindex) < deltaSafe + 0.05; // §8 locality
   const res = retriangulate(P3, M.F, { keepOut, maxFlips: 20 });
   if (res.flips > 0) {
     M.F = res.F;
@@ -371,6 +452,7 @@ document.getElementById('retri').addEventListener('click', () => {
       Lmatrix: buildLaplacian(M.F, V),
       V,
     };
+    Medges = topo.edges;
     const oldW = energy.w,
       oldV = energy.Vstar;
     const centers = energy.centers.arraySync(),

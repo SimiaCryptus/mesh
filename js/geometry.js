@@ -103,6 +103,42 @@ export function box(sx = 1, sy = 1, sz = 1) {
   ];
   return { P, F };
 }
+// --- Normalization helpers (STL import) ---------------------------------
+export function meshBounds(P) {
+   const lo = [Infinity, Infinity, Infinity];
+   const hi = [-Infinity, -Infinity, -Infinity];
+   for (const p of P)
+     for (let k = 0; k < 3; k++) {
+       if (p[k] < lo[k]) lo[k] = p[k];
+       if (p[k] > hi[k]) hi[k] = p[k];
+     }
+   return { lo, hi };
+}
+// Auto-center (bbox center) + isotropic scale so the mesh fits inside the
+// sphere of the given radius. Returns the transformed copy plus the applied
+// transform, so results can be mapped back to the source units.
+//   p_fit = (p_src - center) * scale
+export function fitMeshInSphere(mesh, radius = 1, opts = {}) {
+   const { center = true } = opts;
+   const { lo, hi } = meshBounds(mesh.P);
+   const c =
+     center && isFinite(lo[0])
+       ? [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2]
+       : [0, 0, 0];
+   let maxR = 0;
+   for (const p of mesh.P) {
+     const r = Math.hypot(p[0] - c[0], p[1] - c[1], p[2] - c[2]);
+     if (r > maxR) maxR = r;
+   }
+   const s = maxR > 1e-12 ? radius / maxR : 1;
+   return {
+     P: mesh.P.map((p) => [(p[0] - c[0]) * s, (p[1] - c[1]) * s, (p[2] - c[2]) * s]),
+     F: mesh.F.map((f) => f.slice()),
+     scale: s,
+     center: c,
+   };
+}
+
 
 // --- Topology extraction -------------------------------------------------
 export function buildEdges(F) {
@@ -235,38 +271,42 @@ export function pointTriInfo(p, a, b, c) {
   return { d2: dot(diff, diff), sign, close };
 }
 
+// Nearest surface feature of a static mesh. `faces` is either a plain
+// faceGeom() array (brute force) or any accelerator exposing .nearest(p)
+// — see js/face-index.js, needed once K can be an imported STL.
+export function nearestFeature(p, faces) {
+   if (faces && typeof faces.nearest === 'function') return faces.nearest(p);
+   let best = Infinity,
+     close = null,
+     sign = 1,
+     face = null;
+   for (const f of faces) {
+     const info = pointTriInfo(p, f.a, f.b, f.c);
+     const d = Math.sqrt(info.d2);
+     if (d < best) {
+       best = d;
+       close = info.close;
+       sign = info.sign;
+       face = f;
+     }
+   }
+   return close === null ? null : { dist: best, sign, close, face };
+}
+
 // Signed clearance of a point vs. a static mesh (min over faces, + = outside).
 export function signedClearance(p, faces) {
-  let best = Infinity,
-    sign = 1;
-  for (const f of faces) {
-    const info = pointTriInfo(p, f.a, f.b, f.c);
-    const d = Math.sqrt(info.d2);
-    if (d < best) {
-      best = d;
-      sign = info.sign;
-    }
-  }
-  return sign * best;
+   const nf = nearestFeature(p, faces);
+   return nf ? nf.sign * nf.dist : Infinity;
 }
 // Hard keep-out safety projection (idea.md §4.1): if p is closer than
 // `delta` to the static mesh (or has intruded), push it back out to the
 // nearest surface feature + delta. Returns p unchanged when already clear.
 export function enforceClearance(p, faces, delta) {
-  let best = Infinity,
-    bestClose = null,
-    bestSign = 1;
-  for (const f of faces) {
-    const info = pointTriInfo(p, f.a, f.b, f.c);
-    const d = Math.sqrt(info.d2);
-    if (d < best) {
-      best = d;
-      bestClose = info.close;
-      bestSign = info.sign;
-    }
-  }
-  if (bestClose === null) return p;
-  const signed = bestSign * best;
+   const nf = nearestFeature(p, faces);
+   if (!nf) return p;
+   const bestClose = nf.close,
+     bestSign = nf.sign;
+   const signed = bestSign * nf.dist;
   if (signed >= delta) return p; // already clear
   // outward direction from the nearest surface point
   let dir = sub(p, bestClose);
